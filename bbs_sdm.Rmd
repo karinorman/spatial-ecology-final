@@ -1,0 +1,75 @@
+---
+title: "Spatial Ecology Final"
+author: "Kari Norman"
+date: "11/17/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+library(rJava)
+library(tidyverse)
+library(raster)
+library(dismo)
+library(rgdal)
+
+setwd("~/Documents/Berkeley/Fall 2017/spatial_ecology")
+read_csv("final_project/bbs_clean_2005-2015.csv") %>%
+  select(species, lat, long) %>%
+  unique() -> bbs
+
+wclim <- brick("r_challenges/espm244/wclim_study.area.tif", package = "raster")
+
+```
+
+
+```{r}
+grid_sample <- function(data) {
+  longrid <- seq(-160,-50, 0.2)
+  latgrid <- seq(20, 70, 0.2)
+  
+  subs = c()
+  for (i in 1:(length(longrid) - 1)) {
+    for (j in 1:(length(latgrid) - 1)) {
+      gridsq = subset(
+        data,
+        lat > latgrid[j] &
+          lat < latgrid[j + 1] &
+          long > longrid[i] & 
+          long < longrid[i + 1]
+      )
+      if (dim(gridsq)[1] > 0) {
+        subs = rbind(subs, gridsq[sample(1:dim(gridsq)[1], 1), ])
+      }
+    }
+  }
+  return(subs)
+}
+
+
+```
+
+```{r}
+species_id <- unique(bbs$species)
+
+bbs_samp <- list()
+species_dist <- list()
+for (i in 1:length(species_id)){
+  species_data <- subset(bbs, species == species_id[i])
+  bbs_samp[[i]] <- grid_sample(species_data)
+  species_dist[[i]] <- maxent(wclim, as.data.frame(cbind(bbs_samp[[i]]$long, bbs_samp[[i]]$lat)))
+}
+
+bbs_samp_big <- do.call(rbind, bbs_samp)
+```
+```{r}
+bio1 <- wclim[[1]]
+heatScheme <- colorRampPalette(c("lightsteelblue", "goldenrod", "darkred"), bias=1, space="rgb", interpolate="linear")
+plot(bio1, col = heatScheme(100), xlab="longitude", ylab="latitude", main = "Occurrence Data") 
+points(locs, pch=20, col="blue", bg="blue")
+```
+
