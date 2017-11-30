@@ -16,8 +16,10 @@ library(tidyverse)
 library(raster)
 library(dismo)
 library(rgdal)
+library(aws.s3)
+```
 
-setwd("~/Documents/Berkeley/Fall 2017/spatial_ecology")
+```{r}
 read_csv("final_project/bbs_clean_2005-2015.csv") %>%
   select(species, lat, long) %>%
   unique() -> bbs
