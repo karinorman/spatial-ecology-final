@@ -124,4 +124,22 @@ for(i in 1:length(species_dist)){
 }
 ```
 
+```{r}
+#Plot example SDM with points
+maxent1 <- predict(species_dist[[1]], wclim)
+species_data <- subset(bbs_clean, species == species_id[1])
+
+plot(maxent1, xlab="longitude", ylab="latitude", main = "Occurrence Data") 
+points(as.data.frame(cbind(species_data$long, species_data$lat)), pch=20, col="blue", bg="blue")
+```
+
+```{r}
+#get site lat longs, extract raster values
+coords_clean <-  unique(bbs_clean[c("long", "lat")])
+coords_clean_sp <- sp::SpatialPoints(coords_clean, proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+y <- raster::extract(test_stack, coords_clean_sp)
+y <- cbind(coords, as.data.frame(y))
+
+y$richness <- apply(y[,c(-1,-2)], 1, function(x) sum(x >= 0.05))
+```
 
