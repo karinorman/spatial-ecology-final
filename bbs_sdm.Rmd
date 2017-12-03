@@ -115,6 +115,7 @@ test_maxent <- maxent(wclim, as.data.frame(cbind(test_occ$long, test_occ$lat)))
 
 test <- dismo::predict(test_maxent, wclim)
 ```
+
 ```{r}
 #test stacking loop
 species_stack <- stack()
