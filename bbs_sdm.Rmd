@@ -55,6 +55,18 @@ grid_sample <- function(data) {
 ```
 
 ```{r}
+#Get a count of the number of samples for each species
+site_count <- list()
+for (i in 1:length(species_id)){
+  species_data <- subset(bbs_clean, species == species_id[i])
+  if (dim(species_data[1]) > 25){
+    site_count[[i]] <- dim(species_data)[1]
+  }
+}
+site_count <- as.data.frame(site_count)
+```
+
+```{r}
 #Plot points that result in NA's
 coords <-  unique(bbs[c("long", "lat")])
 coords_sp <- sp::SpatialPoints(coords, proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
@@ -96,24 +108,20 @@ bbs_samp_big <- do.call(rbind, bbs_samp)
 ```
 
 ```{r}
-#Get a count of the number of samples for each species
-site_count <- list()
-for (i in 1:length(species_id)){
-  species_data <- subset(bbs_clean, species == species_id[i])
-  if (dim(species_data[1]) > 25){
-    site_count[[i]] <- dim(species_data)[1]
-  }
-}
-site_count <- as.data.frame(site_count)
-```
-
-```{r}
 #test predict function
 test_occ <- subset(bbs_clean, species == species_id[3])
 test_occ <- grid_sample(test_occ)
 test_maxent <- maxent(wclim, as.data.frame(cbind(test_occ$long, test_occ$lat)))
 
 test <- dismo::predict(test_maxent, wclim)
+```
+```{r}
+#test stacking loop
+species_stack <- stack()
+for(i in 1:3){
+  pred <- predict(species_dist[[i]], wclim)
+  species_stack <- stack(species_stack, pred)
+}
 ```
 
 ```{r}
