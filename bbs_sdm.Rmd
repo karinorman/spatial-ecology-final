@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+#dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
 library(rJava)
 library(tidyverse)
 library(raster)
@@ -20,12 +20,11 @@ library(aws.s3)
 ```
 
 ```{r}
-read_csv("final_project/bbs_clean_2005-2015.csv") %>%
-  select(species, lat, long) %>%
+read_csv("data-private/bbs_clean_2005-2015.csv") %>%
+  dplyr::select(species, lat, long) %>%
   unique() -> bbs
 
-wclim <- brick("r_challenges/espm244/wclim_study.area.tif", package = "raster")
-
+wclim <- brick("data-private/wclim_study.area.tif", package = "raster")
 ```
 
 
@@ -56,22 +55,65 @@ grid_sample <- function(data) {
 ```
 
 ```{r}
-species_id <- unique(bbs$species)
+#Plot points that result in NA's
+coords <-  unique(bbs[c("long", "lat")])
+coords_sp <- sp::SpatialPoints(coords, proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+y <- raster::extract(wclim, coords_sp)
+y <- as.data.frame(y)
+
+y_na <- as.data.frame(which(is.na(y), arr.ind=TRUE))
+na_rows <- unique(y_na$row)
+bbs_na_coords <- as.data.frame(coords[na_rows,])
+
+bio1 <- wclim[[1]]
+heatScheme <- colorRampPalette(c("lightsteelblue", "goldenrod", "darkred"), bias=1, space="rgb", interpolate="linear")
+plot(bio1, col = heatScheme(100), xlab="longitude", ylab="latitude", main = "Occurrence Data") 
+points(bbs_na_coords, pch=20, col="blue", bg="blue")
+```
+
+```{r}
+#Exclude locations with NA values before fitting sdm's
+bbs_na_coords$EXTRACOL <- 1
+
+bbs_merge <- merge(bbs, bbs_na_coords, by = c("lat", "long"), all=TRUE)
+bbs_clean <- bbs_merge[is.na(bbs_merge$EXTRACOL),]
+bbs_clean$EXTRACOL <- NULL
+```
+
+```{r}
+#Generate maxent model for each species observed
+species_id <- unique(bbs_clean$species)
 
 bbs_samp <- list()
 species_dist <- list()
 for (i in 1:length(species_id)){
-  species_data <- subset(bbs, species == species_id[i])
+  species_data <- subset(bbs_clean, species == species_id[i])
   bbs_samp[[i]] <- grid_sample(species_data)
   species_dist[[i]] <- maxent(wclim, as.data.frame(cbind(bbs_samp[[i]]$long, bbs_samp[[i]]$lat)))
 }
 
 bbs_samp_big <- do.call(rbind, bbs_samp)
 ```
+
 ```{r}
-bio1 <- wclim[[1]]
-heatScheme <- colorRampPalette(c("lightsteelblue", "goldenrod", "darkred"), bias=1, space="rgb", interpolate="linear")
-plot(bio1, col = heatScheme(100), xlab="longitude", ylab="latitude", main = "Occurrence Data") 
-points(locs, pch=20, col="blue", bg="blue")
+#Get a count of the number of samples for each species
+site_count <- list()
+for (i in 1:length(species_id)){
+  species_data <- subset(bbs_clean, species == species_id[i])
+  if (dim(species_data[1]) > 25){
+    site_count[[i]] <- dim(species_data)[1]
+  }
+}
+site_count <- as.data.frame(site_count)
 ```
+
+```{r}
+#test predict function
+test_occ <- subset(bbs_clean, species == species_id[3])
+test_occ <- grid_sample(test_occ)
+test_maxent <- maxent(wclim, as.data.frame(cbind(test_occ$long, test_occ$lat)))
+
+test <- dismo::predict(test_maxent, wclim)
+```
+
 
