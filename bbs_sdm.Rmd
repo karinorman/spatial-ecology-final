@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-#dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
 library(rJava)
 library(tidyverse)
 library(raster)
@@ -20,7 +20,7 @@ library(aws.s3)
 ```
 
 ```{r}
-read_csv("data-private/bbs_clean_2005-2015.csv") %>%
+read_csv("data-private/bbs_full_2005_2015.csv") %>%
   dplyr::select(species, lat, long) %>%
   unique() -> bbs
 
@@ -117,12 +117,30 @@ test <- dismo::predict(test_maxent, wclim)
 ```
 
 ```{r}
-#test stacking loop
-species_stack <- stack()
-for(i in 1:length(species_dist)){
+# #test stacking loop
+# species_stack <- stack()
+# for(i in 1:length(species_dist)){
+#   pred <- predict(species_dist[[i]], wclim)
+#   species_stack <- stack(species_stack, pred)
+# }
+```
+
+```{r}
+#Full Humming bird analysis, fit model and predict
+hum_id <- c(4270,4280,4290,4300,4310,4320,4330,4340,4360)
+
+hum_samp <- list()
+hum_dist <- list()
+hum_stack <- stack()
+for (i in 1:length(hum_id)){
+  print(i)
+  species_data <- subset(bbs_clean, species == hum_id[i])
+  bbs_samp[[i]] <- grid_sample(species_data)
+  species_dist[[i]] <- maxent(wclim, as.data.frame(cbind(bbs_samp[[i]]$long, bbs_samp[[i]]$lat)))
   pred <- predict(species_dist[[i]], wclim)
-  species_stack <- stack(species_stack, pred)
+  hum_stack <- stack(hum_stack, pred)
 }
+
 ```
 
 ```{r}
