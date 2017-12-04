@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+#dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
 library(rJava)
 library(tidyverse)
 library(raster)
@@ -132,7 +132,7 @@ hum_id <- c(4270,4280,4290,4300,4310,4320,4330,4340,4360)
 hum_samp <- list()
 hum_dist <- list()
 hum_stack <- stack()
-for (i in 1:length(hum_id)){
+for (i in 5:9){
   print(i)
   species_data <- subset(bbs_clean, species == hum_id[i])
   bbs_samp[[i]] <- grid_sample(species_data)
@@ -141,6 +141,15 @@ for (i in 1:length(hum_id)){
   hum_stack <- stack(hum_stack, pred)
 }
 
+```
+```{r}
+#Merge Humming bird data
+X4270 <- raster("data-private/hum_sdmX4270.tif")
+X4280 <- raster("data-private/hum_sdmX4280.tif")
+X4290 <- raster("data-private/hum_sdmX4290.tif")
+X4300 <- raster("data-private/hum_sdmX4300.tif")
+
+full_hum_stack <- stack(X4270, X4280, X4290, X4300, hum_stack2)
 ```
 
 ```{r}
@@ -156,8 +165,8 @@ points(as.data.frame(cbind(species_data$long, species_data$lat)), pch=20, col="b
 #get site lat longs, extract raster values
 coords_clean <-  unique(bbs_clean[c("long", "lat")])
 coords_clean_sp <- sp::SpatialPoints(coords_clean, proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
-y <- raster::extract(test_stack, coords_clean_sp)
-y <- cbind(coords, as.data.frame(y))
+y <- raster::extract(full_hum_stack, coords_clean_sp)
+y <- cbind(coords_clean, as.data.frame(y))
 
 y$richness <- apply(y[,c(-1,-2)], 1, function(x) sum(x >= 0.05))
 ```
