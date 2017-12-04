@@ -132,7 +132,7 @@ hum_id <- c(4270,4280,4290,4300,4310,4320,4330,4340,4360)
 hum_samp <- list()
 hum_dist <- list()
 hum_stack <- stack()
-for (i in 1:length(hum_id)){
+for (i in 1:4){
   print(i)
   species_data <- subset(bbs_clean, species == hum_id[i])
   bbs_samp[[i]] <- grid_sample(species_data)
@@ -141,6 +141,17 @@ for (i in 1:length(hum_id)){
   hum_stack <- stack(hum_stack, pred)
 }
 
+hum_stack1 <- hum_stack
+names(hum_stack1) <- c(4270,4280,4290,4300)
+
+#write to tif
+for (i in 1:length(names(hum_stack1))){
+  file_name <- paste("data-private/hum_sdm", names(hum_stack1)[i], ".csv", sep="")
+  writeRaster(hum_stack1[[i]],
+                file_name,
+                format = "GTiff",
+                overwrite=TRUE)
+}
 ```
 
 ```{r}
