@@ -214,13 +214,3 @@ as_tibble(y) %>%
 
 write.csv(richness_df, "data-private/hummingbird_SDM_richness.csv")
 ```
-
-```{r}
-for (i in 13:16){
-  name <- unlist(in_bucket[i,1])
-  delete_object(name, bucket = "kari-research")
-}
-
-in_bucket <- tibble::as_tibble(get_bucket_df("kari-research"))
-```
-
