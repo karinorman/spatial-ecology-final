@@ -169,6 +169,15 @@ for (i in 5:9){
 
 hum_stack2 <- hum_stack
 names(hum_stack2) <- c(4320,4330,4340,4360,4310)
+
+#write to tif
+for (i in 1:length(names(hum_stack2))){
+  file_name <- paste("data-private/hum_sdm", names(hum_stack2)[i], ".csv", sep="")
+  writeRaster(hum_stack2[[i]],
+                file_name,
+                format = "GTiff",
+                overwrite=TRUE)
+}
 ```
 
 ```{r}
@@ -198,5 +207,20 @@ y <- raster::extract(full_hum_stack, coords_clean_sp)
 y <- cbind(coords_clean, as.data.frame(y))
 
 y$richness <- apply(y[,c(-1,-2)], 1, function(x) sum(x >= 0.05))
+
+as_tibble(y) %>%
+  dplyr::select(long, lat, richness) %>%
+  filter(richness > 0) -> richness_df
+
+write.csv(richness_df, "data-private/hummingbird_SDM_richness.csv")
+```
+
+```{r}
+for (i in 13:16){
+  name <- unlist(in_bucket[i,1])
+  delete_object(name, bucket = "kari-research")
+}
+
+in_bucket <- tibble::as_tibble(get_bucket_df("kari-research"))
 ```
 
